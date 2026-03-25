@@ -7,7 +7,7 @@ app.secret_key = "secret123"
 
 # ---------------- DATABASE ----------------
 def get_db():
-    conn = sqlite3.connect("students.db")
+    conn = sqlite3.connect("/tmp/students.db")   # 🔥 FIX FOR RENDER
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -24,7 +24,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# 🔥 IMPORTANT FIX (RUN ALWAYS - FOR RENDER)
+# 🔥 VERY IMPORTANT (RUN ALWAYS)
 init_db()
 
 # ---------------- LOGIN ----------------
