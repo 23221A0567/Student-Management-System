@@ -24,6 +24,9 @@ def init_db():
     conn.commit()
     conn.close()
 
+# 🔥 IMPORTANT FIX (RUN ALWAYS - FOR RENDER)
+init_db()
+
 # ---------------- LOGIN ----------------
 stored_username = "admin"
 stored_password = generate_password_hash("1234")
@@ -106,11 +109,13 @@ def search():
     keyword = request.form['keyword']
 
     conn = get_db()
-    data = conn.execute("SELECT * FROM students WHERE name LIKE ?", ('%' + keyword + '%',)).fetchall()
+    data = conn.execute(
+        "SELECT * FROM students WHERE name LIKE ?",
+        ('%' + keyword + '%',)
+    ).fetchall()
 
     return render_template("index.html", students=data)
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
