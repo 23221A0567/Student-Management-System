@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, flash
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -7,115 +7,160 @@ app.secret_key = "secret123"
 
 # ---------------- DATABASE ----------------
 def get_db():
-    conn = sqlite3.connect("/tmp/students.db")   # 🔥 FIX FOR RENDER
+    conn = sqlite3.connect("/tmp/app.db")
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_db()
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT UNIQUE,
+            phone TEXT,
+            age TEXT,
+            password TEXT,
+            role TEXT
+        )
+    """)
+
     conn.execute("""
         CREATE TABLE IF NOT EXISTS students(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             name TEXT,
-            age TEXT,
             course TEXT
         )
     """)
+
     conn.commit()
+
+    # CREATE DEFAULT ADMIN
+    admin = conn.execute("SELECT * FROM users WHERE email='admin@gmail.com'").fetchone()
+    if not admin:
+        conn.execute(
+            "INSERT INTO users (name,email,phone,age,password,role) VALUES (?,?,?,?,?,?)",
+            ("Admin", "admin@gmail.com", "9999999999", "25",
+             generate_password_hash("admin123"), "admin")
+        )
+        conn.commit()
+
     conn.close()
 
-# 🔥 VERY IMPORTANT (RUN ALWAYS)
 init_db()
 
-# ---------------- LOGIN ----------------
-stored_username = "admin"
-stored_password = generate_password_hash("1234")
+# ---------------- SIGNUP ----------------
+@app.route('/signup', methods=['GET','POST'])
+def signup():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        phone = request.form['phone']
+        age = request.form['age']
+        password = generate_password_hash(request.form['password'])
 
-@app.route('/login', methods=['GET', 'POST'])
+        try:
+            conn = get_db()
+            conn.execute(
+                "INSERT INTO users (name,email,phone,age,password,role) VALUES (?,?,?,?,?,?)",
+                (name, email, phone, age, password, "user")
+            )
+            conn.commit()
+            flash("Signup successful!", "success")
+            return redirect('/login')
+        except:
+            flash("Email already exists!", "danger")
+
+    return render_template("signup.html")
+
+# ---------------- LOGIN ----------------
+@app.route('/login', methods=['GET','POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        email = request.form['email']
         password = request.form['password']
 
-        if username == stored_username and check_password_hash(stored_password, password):
-            session['user'] = username
-            return redirect('/')
+        conn = get_db()
+        user = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+
+        if user and check_password_hash(user['password'], password):
+            session['user_id'] = user['id']
+            session['role'] = user['role']
+            session['name'] = user['name']
+
+            if user['role'] == 'admin':
+                return redirect('/admin')
+            else:
+                return redirect('/dashboard')
         else:
-            return render_template("login.html", error="Invalid credentials")
+            flash("Invalid login!", "danger")
 
     return render_template("login.html")
 
+# ---------------- LOGOUT ----------------
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
+    session.clear()
     return redirect('/login')
 
-# ---------------- HOME ----------------
-@app.route('/')
-def index():
-    if 'user' not in session:
+# ---------------- USER DASHBOARD ----------------
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
         return redirect('/login')
 
     conn = get_db()
-    students = conn.execute("SELECT * FROM students").fetchall()
-    return render_template("index.html", students=students)
+    data = conn.execute(
+        "SELECT * FROM students WHERE user_id=?",
+        (session['user_id'],)
+    ).fetchall()
 
-# ---------------- ADD ----------------
+    return render_template("user_dashboard.html", data=data)
+
+# ---------------- ADD DATA ----------------
 @app.route('/add', methods=['POST'])
 def add():
-    if 'user' not in session:
+    if 'user_id' not in session:
         return redirect('/login')
 
     name = request.form['name']
-    age = request.form['age']
     course = request.form['course']
 
     conn = get_db()
-    conn.execute("INSERT INTO students (name, age, course) VALUES (?, ?, ?)",
-                 (name, age, course))
+    conn.execute(
+        "INSERT INTO students (user_id,name,course) VALUES (?,?,?)",
+        (session['user_id'], name, course)
+    )
     conn.commit()
 
-    return redirect('/')
+    flash("Data added!", "success")
+    return redirect('/dashboard')
+
+# ---------------- ADMIN PANEL ----------------
+@app.route('/admin')
+def admin():
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect('/login')
+
+    conn = get_db()
+    users = conn.execute("SELECT * FROM users").fetchall()
+    students = conn.execute("SELECT * FROM students").fetchall()
+
+    return render_template("admin.html", users=users, students=students)
 
 # ---------------- DELETE ----------------
 @app.route('/delete/<int:id>')
 def delete(id):
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect('/login')
+
     conn = get_db()
     conn.execute("DELETE FROM students WHERE id=?", (id,))
     conn.commit()
-    return redirect('/')
 
-# ---------------- UPDATE ----------------
-@app.route('/update/<int:id>', methods=['GET', 'POST'])
-def update(id):
-    conn = get_db()
+    return redirect('/admin')
 
-    if request.method == 'POST':
-        name = request.form['name']
-        age = request.form['age']
-        course = request.form['course']
-
-        conn.execute("UPDATE students SET name=?, age=?, course=? WHERE id=?",
-                     (name, age, course, id))
-        conn.commit()
-        return redirect('/')
-
-    student = conn.execute("SELECT * FROM students WHERE id=?", (id,)).fetchone()
-    return render_template("update.html", student=student)
-
-# ---------------- SEARCH ----------------
-@app.route('/search', methods=['POST'])
-def search():
-    keyword = request.form['keyword']
-
-    conn = get_db()
-    data = conn.execute(
-        "SELECT * FROM students WHERE name LIKE ?",
-        ('%' + keyword + '%',)
-    ).fetchall()
-
-    return render_template("index.html", students=data)
-
-# ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
