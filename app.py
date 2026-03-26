@@ -7,7 +7,7 @@ app.secret_key = "secret123"
 
 # ---------------- DATABASE ----------------
 def get_db():
-    conn = sqlite3.connect("/tmp/app.db")
+    conn = sqlite3.connect("/tmp/database.db")   # Render-safe
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -15,29 +15,29 @@ def init_db():
     conn = get_db()
 
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS users(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            email TEXT UNIQUE,
-            phone TEXT,
-            age TEXT,
-            password TEXT,
-            role TEXT
-        )
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        email TEXT UNIQUE,
+        phone TEXT,
+        age TEXT,
+        password TEXT,
+        role TEXT
+    )
     """)
 
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS students(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            name TEXT,
-            course TEXT
-        )
+    CREATE TABLE IF NOT EXISTS students(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        name TEXT,
+        course TEXT
+    )
     """)
 
     conn.commit()
 
-    # CREATE DEFAULT ADMIN
+    # Create default admin
     admin = conn.execute("SELECT * FROM users WHERE email='admin@gmail.com'").fetchone()
     if not admin:
         conn.execute(
@@ -49,7 +49,13 @@ def init_db():
 
     conn.close()
 
+# 🔥 IMPORTANT
 init_db()
+
+# ---------------- HOME FIX ----------------
+@app.route('/')
+def home():
+    return redirect('/login')
 
 # ---------------- SIGNUP ----------------
 @app.route('/signup', methods=['GET','POST'])
@@ -135,7 +141,7 @@ def add():
     )
     conn.commit()
 
-    flash("Data added!", "success")
+    flash("Added successfully!", "success")
     return redirect('/dashboard')
 
 # ---------------- ADMIN PANEL ----------------
@@ -162,5 +168,6 @@ def delete(id):
 
     return redirect('/admin')
 
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
