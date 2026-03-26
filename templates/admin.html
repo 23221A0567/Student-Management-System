@@ -32,9 +32,12 @@
 <tr>
 <td>{{ s['name'] }}</td>
 <td>{{ s['course'] }}</td>
-<td><a href="/delete/{{ s['id'] }}" class="btn btn-danger btn-sm">Delete</a></td>
+<td>
+    <a href="/delete/{{ s['id'] }}" class="btn btn-danger btn-sm">Delete</a>
+</td>
 </tr>
 {% endfor %}
+
 </table>
 
 <a href="/logout" class="btn btn-dark">Logout</a>
