@@ -9,28 +9,28 @@
 
 <div class="container mt-5">
 
-<h3>Welcome {{ session.name }}</h3>
+    <h3>User Dashboard</h3>
 
-<form action="/add" method="post" class="mb-3">
-<input name="name" placeholder="Name" class="form-control mb-2">
-<input name="course" placeholder="Course" class="form-control mb-2">
-<button class="btn btn-success">Add</button>
-</form>
+    <form method="post" action="/add" class="mb-3">
+        <input name="name" class="form-control mb-2" placeholder="Student Name" required>
+        <input name="course" class="form-control mb-2" placeholder="Course" required>
+        <button class="btn btn-primary">Add Student</button>
+    </form>
 
-<table class="table">
-<tr><th>Name</th><th>Course</th></tr>
+    <table class="table">
+        <tr><th>Name</th><th>Course</th></tr>
 
-{% for s in data %}
-<tr>
-<td>{{ s['name'] }}</td>
-<td>{{ s['course'] }}</td>
-</tr>
-{% endfor %}
+        {% for s in students %}
+        <tr>
+            <td>{{ s[1] }}</td>
+            <td>{{ s[2] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 
-</table>
-
-<a href="/logout" class="btn btn-danger">Logout</a>
+    <a href="/logout" class="btn btn-dark">Logout</a>
 
 </div>
+
 </body>
 </html>
