@@ -8,21 +8,20 @@
 <body class="bg-light">
 
 <div class="container mt-5">
-<div class="card p-4 col-md-4 mx-auto">
+    <div class="card p-4 mx-auto" style="max-width:500px;">
+        <h3 class="text-center">Signup</h3>
 
-<h3 class="text-center">Signup</h3>
+        <form method="post">
+            <input name="name" class="form-control mb-2" placeholder="Name" required>
+            <input name="email" class="form-control mb-2" placeholder="Email" required>
+            <input name="phone" class="form-control mb-2" placeholder="Phone" required>
+            <input name="age" class="form-control mb-2" placeholder="Age" required>
+            <input name="username" class="form-control mb-2" placeholder="Username" required>
+            <input name="password" type="password" class="form-control mb-3" placeholder="Password" required>
 
-<form method="post">
-<input name="name" class="form-control mb-2" placeholder="Name">
-<input name="email" class="form-control mb-2" placeholder="Email">
-<input name="phone" class="form-control mb-2" placeholder="Phone">
-<input name="age" class="form-control mb-2" placeholder="Age">
-<input type="password" name="password" class="form-control mb-2" placeholder="Password">
-
-<button class="btn btn-success w-100">Signup</button>
-</form>
-
-</div>
+            <button class="btn btn-success w-100">Signup</button>
+        </form>
+    </div>
 </div>
 
 </body>
